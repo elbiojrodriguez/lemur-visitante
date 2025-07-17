@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sender Mobile</title>
+</head>
+<body style="text-align:center; background:#121212; color:white;">
+  <h1>📱 Enviando vídeo do celular</h1>
+  <video id="video" autoplay playsinline style="width:90%; max-width:400px;"></video>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const video = document.getElementById('video');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        setInterval(() => {
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frame = canvas.toDataURL('image/webp');
+            socket.emit('mobile-frame', frame);
+          }
+        }, 100);
+      })
+      .catch(err => {
+        document.body.innerHTML += `<p style="color:red;">Erro ao acessar câmera: ${err}</p>`;
+      });
+  </script>
+</body>
+</html>
