@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Receiver PC</title>
+</head>
+<body style="text-align:center; background:#121212; color:white;">
+  <h1>🖥️ Recebendo vídeo do celular</h1>
+  <img id="mobileStream" style="max-width:90%; border:2px solid #fff;" />
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const img = document.getElementById('mobileStream');
+
+    socket.on('mobile-frame', data => {
+      img.src = data;
+    });
+  </script>
+</body>
+</html>
