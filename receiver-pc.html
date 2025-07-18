@@ -1,19 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Receiver PC</title>
+  <meta charset="UTF-8">
+  <title>Turbo Receiver</title>
+  <style>
+    body {
+      background: #1a1a1a;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    video {
+      width: 80%;
+      margin-top: 20px;
+      border: 2px solid #90ee90;
+      border-radius: 10px;
+    }
+  </style>
 </head>
-<body style="text-align:center; background:#121212; color:white;">
-  <h1>🖥️ Recebendo vídeo do celular</h1>
-  <img id="mobileStream" style="max-width:90%; border:2px solid #fff;" />
+<body>
+  <h1>📥 Turbo Receiver</h1>
+  <video id="remoteVideo" autoplay playsinline></video>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const img = document.getElementById('mobileStream');
 
-    socket.on('mobile-frame', data => {
-      img.src = data;
+    const remoteVideo = document.getElementById('remoteVideo');
+    let peerConnection;
+
+    const config = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
+
+    // 1. Escuta oferta do sender
+    socket.on('webrtc-offer', offer => {
+      peerConnection = new RTCPeerConnection(config);
+
+      // 2. Adiciona candidato ICE
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', event.candidate);
+        }
+      };
+
+      // 3. Recebe stream remoto
+      peerConnection.ontrack = event => {
+        remoteVideo.srcObject = event.streams[0];
+      };
+
+      // 4. Define oferta recebida
+      peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => {
+          return peerConnection.createAnswer();
+        })
+        .then(answer => {
+          return peerConnection.setLocalDescription(answer);
+        })
+        .then(() => {
+          socket.emit('webrtc-answer', peerConnection.localDescription);
+        });
+    });
+
+    // 5. Recebe candidatos ICE do sender
+    socket.on('ice-candidate', candidate => {
+      if (peerConnection) {
+        peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      }
     });
   </script>
 </body>
